@@ -14,7 +14,7 @@ variable "instance_type" {
 
 variable "key_name" {
   description = "SSH key name"
-  default     = "my-key" # Replace with your key pair name
+  default     = "mosip-qa.pem" # Replace with your key pair name
 }
 
 resource "aws_instance" "performance_vm" {
