@@ -1,5 +1,5 @@
 provider "aws" {
-  region = "mumbai" # Change the region as needed
+  region = "ap-south-1 # Change the region as needed
 }
 
 variable "ami_id" {
