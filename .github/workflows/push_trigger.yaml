@@ -30,17 +30,30 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1  # Change region if needed
 
+      - name: Debug - List Repository Files
+        run: ls -R
+
       - name: Initialize Terraform
-        run: terraform init
+        run: |
+          cd terraform
+          terraform init
 
       - name: Validate Terraform
-        run: terraform validate
+        run: |
+          cd terraform
+          terraform validate
 
       - name: Plan Terraform Deployment
-        run: terraform plan -out=tfplan
+        run: |
+          cd terraform
+          terraform plan -out=tfplan
 
       - name: Apply Terraform Configuration
-        run: terraform apply -auto-approve tfplan
+        run: |
+          cd terraform
+          terraform apply -auto-approve tfplan
 
       - name: Output Instance Public IP
-        run: terraform output instance_public_ip
+        run: |
+          cd terraform
+          terraform output instance_public_ip
