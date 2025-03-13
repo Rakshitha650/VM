@@ -26,7 +26,7 @@ data "aws_security_group" "existing_perf_vm_sg" {
 }
 
 resource "aws_security_group" "perf_vm_sg" {
-  count       = (data.aws_security_group.existing_perf_vm_sg.id != "" ? 0 : 1)
+  count       = (try(data.aws_security_group.existing_perf_vm_sg.id, "") != "" ? 0 : 1)
   name        = "mosip-k8s-performance-vm"
   description = "Allow necessary access"
 
@@ -64,7 +64,7 @@ resource "aws_instance" "performance_vm" {
   instance_type = var.instance_type
   key_name      = var.key_name
 
-  vpc_security_group_ids = data.aws_security_group.existing_perf_vm_sg.id != "" ?
+  vpc_security_group_ids = try(data.aws_security_group.existing_perf_vm_sg.id, "") != "" ?
     [data.aws_security_group.existing_perf_vm_sg.id] :
     [aws_security_group.perf_vm_sg[0].id]
 
