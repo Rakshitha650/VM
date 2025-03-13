@@ -41,9 +41,14 @@ jobs:
       - name: Get Instance Public IP
         id: get-ip
         run: |
-          INSTANCE_IP=$(terraform output -raw instance_public_ip 2> /dev/null | tr -d '\n')
+          INSTANCE_IP=$(terraform output -raw instance_public_ip)
+          echo "Fetched Instance IP: $INSTANCE_IP"  # Debug line to confirm IP
           echo "INSTANCE_IP=$INSTANCE_IP" >> $GITHUB_ENV
         working-directory: terraform
+
+      - name: Debug - Print Public IP
+        run:
+         echo "Instance IP is: ${{ env.INSTANCE_IP }}"
 
       - name: Setup SSH Key
         run: |
@@ -61,6 +66,7 @@ jobs:
             echo "Retrying in 15 seconds..."
             sleep 15
           done
+      
 
       - name: Install Software on AWS VM
         run: |
