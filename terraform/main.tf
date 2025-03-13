@@ -66,7 +66,7 @@ resource "aws_instance" "performance_vm" {
 
   # Using security_group_ids to accept Security Group ID
   security_group_ids = length(data.aws_security_group.existing_perf_vm_sg.ids) > 0 ?
-    [data.aws_security_group.existing_perf_vm_sg.id] :
+    [data.aws_security_group.existing_perf_vm_sg.ids[0]] :
     [aws_security_group.perf_vm_sg[0].id]
 
   # Install required software packages
