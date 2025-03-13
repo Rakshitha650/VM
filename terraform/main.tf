@@ -26,7 +26,7 @@ data "aws_security_group" "existing_perf_vm_sg" {
 }
 
 resource "aws_security_group" "perf_vm_sg" {
-  count       = (length(data.aws_security_group.existing_perf_vm_sg.id) == 0 ? 1 : 0)
+  count       = (data.aws_security_group.existing_perf_vm_sg.id != "" ? 0 : 1)
   name        = "mosip-k8s-performance-vm"
   description = "Allow necessary access"
 
@@ -64,7 +64,7 @@ resource "aws_instance" "performance_vm" {
   instance_type = var.instance_type
   key_name      = var.key_name
 
-  vpc_security_group_ids = length(data.aws_security_group.existing_perf_vm_sg.id) > 0 ?
+  vpc_security_group_ids = data.aws_security_group.existing_perf_vm_sg.id != "" ?
     [data.aws_security_group.existing_perf_vm_sg.id] :
     [aws_security_group.perf_vm_sg[0].id]
 
@@ -77,4 +77,5 @@ resource "aws_instance" "performance_vm" {
 
 output "instance_public_ip" {
   description = "Public IP of the created instance"
-
+  value       = aws_instance.performance_vm.public_ip
+}
