@@ -23,12 +23,10 @@ data "aws_security_group" "existing_perf_vm_sg" {
     name   = "group-name"
     values = ["mosip-k8s-performance-vm"]
   }
-  # Avoid failing if the security group doesn't exist
-  ignore_errors = true
 }
 
 resource "aws_security_group" "perf_vm_sg" {
-  count       = (try(data.aws_security_group.existing_perf_vm_sg.id, "") == "") ? 1 : 0
+  count       = (length(data.aws_security_group.existing_perf_vm_sg.id) == 0 ? 1 : 0)
   name        = "mosip-k8s-performance-vm"
   description = "Allow necessary access"
 
@@ -62,13 +60,13 @@ resource "aws_security_group" "perf_vm_sg" {
 }
 
 resource "aws_instance" "performance_vm" {
-  ami             = var.ami_id
-  instance_type   = var.instance_type
-  key_name        = var.key_name
+  ami           = var.ami_id
+  instance_type = var.instance_type
+  key_name      = var.key_name
 
-  vpc_security_group_ids = (try(data.aws_security_group.existing_perf_vm_sg.id, "") == "") ?
-    [aws_security_group.perf_vm_sg[0].id] :
-    [data.aws_security_group.existing_perf_vm_sg.id]
+  vpc_security_group_ids = length(data.aws_security_group.existing_perf_vm_sg.id) > 0 ?
+    [data.aws_security_group.existing_perf_vm_sg.id] :
+    [aws_security_group.perf_vm_sg[0].id]
 
   user_data = file("install.sh")
 
@@ -79,5 +77,4 @@ resource "aws_instance" "performance_vm" {
 
 output "instance_public_ip" {
   description = "Public IP of the created instance"
-  value       = aws_instance.performance_vm.public_ip
-}
+
