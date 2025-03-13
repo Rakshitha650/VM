@@ -17,22 +17,17 @@ variable "key_name" {
   default     = "mosip-qa" # Replace with your key pair name
 }
 
-resource "aws_instance" "performance_vm" {
-  ami             = var.ami_id
-  instance_type   = var.instance_type
-  key_name        = var.key_name
-  security_groups = [aws_security_group.perf_vm_sg.name]
-
-  # Install required software packages
-  user_data = file("install.sh")
-
-  tags = {
-    Name = "Performance-VM"
+# Lookup existing security group by name
+data "aws_security_group" "existing_perf_vm_sg" {
+  filter {
+    name   = "group-name"
+    values = ["mosip-k8s-performance-vm"]
   }
 }
 
 resource "aws_security_group" "perf_vm_sg" {
-  name        = "mosip-k8s-performance-vm222"
+  count       = length(data.aws_security_group.existing_perf_vm_sg.ids) > 0 ? 0 : 1
+  name        = "mosip-k8s-performance-vm"
   description = "Allow necessary access"
 
   ingress {
@@ -61,6 +56,22 @@ resource "aws_security_group" "perf_vm_sg" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_instance" "performance_vm" {
+  ami             = var.ami_id
+  instance_type   = var.instance_type
+  key_name        = var.key_name
+  security_groups = length(data.aws_security_group.existing_perf_vm_sg.ids) > 0 ?
+    [data.aws_security_group.existing_perf_vm_sg.name] :
+    [aws_security_group.perf_vm_sg.name]
+
+  # Install required software packages
+  user_data = file("install.sh")
+
+  tags = {
+    Name = "Performance-VM"
   }
 }
 
