@@ -55,4 +55,29 @@ resource "aws_security_group" "perf_vm_sg" {
 
   egress {
     from_port   = 0
-    t
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_instance" "performance_vm" {
+  ami             = var.ami_id
+  instance_type   = var.instance_type
+  key_name        = var.key_name
+
+  vpc_security_group_ids = (try(data.aws_security_group.existing_perf_vm_sg.id, "") == "") ?
+    [aws_security_group.perf_vm_sg[0].id] :
+    [data.aws_security_group.existing_perf_vm_sg.id]
+
+  user_data = file("install.sh")
+
+  tags = {
+    Name = "Performance-VM"
+  }
+}
+
+output "instance_public_ip" {
+  description = "Public IP of the created instance"
+  value       = aws_instance.performance_vm.public_ip
+}
