@@ -47,7 +47,7 @@ jobs:
         working-directory: terraform
 
       - name: Debug - Print Public IP
-        run:
+        run: |
          echo "Instance IP is: ${{ env.INSTANCE_IP }}"
 
       - name: Setup SSH Key
