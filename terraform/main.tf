@@ -64,7 +64,7 @@ resource "aws_instance" "performance_vm" {
   instance_type   = var.instance_type
   key_name        = var.key_name
   security_groups = length(data.aws_security_group.existing_perf_vm_sg.ids) > 0 ?
-    [data.aws_security_group.existing_perf_vm_sg.name] :
+    [data.aws_security_group.existing_perf_vm_sg.id] :
     [aws_security_group.perf_vm_sg.name]
 
   # Install required software packages
