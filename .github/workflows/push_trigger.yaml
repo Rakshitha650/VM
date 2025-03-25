@@ -41,10 +41,15 @@ jobs:
       - name: Get Instance Public IP
         id: get-ip
         run: |
-          INSTANCE_IP=$(terraform output -raw instance_public_ip | tr -d '\n' | tr -d '\r')
+          INSTANCE_IP=$(cd terraform && terraform output -raw instance_public_ip)
+          if [[ -z "$INSTANCE_IP" ]]; then
+            echo "Failed to retrieve instance IP"
+            exit 1
+          fi
           echo "Fetched Instance IP: $INSTANCE_IP"
           echo "INSTANCE_IP=$INSTANCE_IP" >> $GITHUB_ENV
         working-directory: terraform
+
 
       - name: Debug - Print Public IP
         run: |
