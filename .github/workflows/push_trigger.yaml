@@ -42,9 +42,10 @@ jobs:
         id: get-ip
         run: |
           INSTANCE_IP=$(terraform output -raw instance_public_ip | grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}')
-          echo "Fetched Instance IP: $INSTANCE_IP"  # Debugging
-          echo "INSTANCE_IP=$INSTANCE_IP" >> $GITHUB_ENV
+          echo "Fetched Instance IP: $INSTANCE_IP"
+          echo "INSTANCE_IP=$INSTANCE_IP" | tee -a "$GITHUB_ENV"
         working-directory: terraform
+
 
       - name: Debug - Print Public IP
         run: |
