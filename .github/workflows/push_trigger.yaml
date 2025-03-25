@@ -66,7 +66,30 @@ jobs:
             echo "Retrying in 15 seconds..."
             sleep 15
           done
-      
+
+      - name: Setup ufw firewall
+        run: |
+          sudo ufw enable
+          sudo ufw allow ssh
+          sudo ufw allow 443/tcp
+          sudo ufw allow 51820/udp
+          sudo ufw status
+
+      - name: Install WireGuard
+        run: sudo apt-get install -y wireguard
+
+      - name: Configure WireGuard
+        run: |
+          echo "${{ secrets.WG_CONFIG }}" | sudo tee /etc/wireguard/wg0.conf
+
+      - name: Start WireGuard
+        run: |
+          sudo chmod 600 /etc/wireguard/wg0.conf
+          sudo chmod 700 /etc/wireguard/
+          sudo chmod 644 /lib/systemd/system/wg-quick@.service
+          sudo systemctl daemon-reload
+          sudo wg-quick up wg0
+          sudo wg show wg0
 
       - name: Install Software on AWS VM
         run: |
@@ -80,17 +103,6 @@ jobs:
           # Install JProfiler 13
           wget -O jprofiler.deb https://download.ej-technologies.com/jprofiler/jprofiler_linux_13_0_1.deb
           sudo dpkg -i jprofiler.deb || sudo apt-get install -f -y
-
-          # Install WireGuard
-          sudo apt install -y wireguard
-
-          # Configure WireGuard
-          echo "${{ secrets.WG_CONFIG }}" | sudo tee /etc/wireguard/wg0.conf
-          sudo chmod 600 /etc/wireguard/wg0.conf
-          sudo chmod 700 /etc/wireguard/
-          sudo systemctl daemon-reload
-          sudo wg-quick up wg0
-          sudo wg show wg0
 
           # Install VNC Server
           sudo apt install -y tightvncserver
