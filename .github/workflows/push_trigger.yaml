@@ -61,8 +61,6 @@ jobs:
           # Correct way to set environment variable
           echo "INSTANCE_IP=$INSTANCE_IP" >> $GITHUB_ENV
         shell: bash
-      
-
 
       - name: Debug - Print Retrieved Public IP
         run: |
