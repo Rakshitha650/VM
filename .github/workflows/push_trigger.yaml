@@ -12,23 +12,37 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      - name: Verify Terraform Files
+        run: |
+          ls -l
+          if [ ! -f "main.tf" ]; then
+            echo "❌ Terraform files not found! Ensure they exist in the repository."
+            exit 1
+          fi
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.5.7  # Use the correct Terraform version
+          terraform_version: 1.5.7  # Set your required Terraform version
 
       - name: Initialize Terraform
         run: terraform init
+        working-directory: terraform  # Ensure Terraform runs in the correct directory
+
+      - name: Validate Terraform Configuration
+        run: terraform validate
+        working-directory: terraform
 
       - name: Apply Terraform Configuration
         run: terraform apply -auto-approve
+        working-directory: terraform
 
       - name: Wait for Terraform Outputs
-        run: sleep 30  # Gives Terraform time to update state properly
+        run: sleep 30  # Give Terraform time to update state
 
       - name: Verify Terraform Outputs
-        run: |
-          terraform output || echo "No outputs found!"
+        run: terraform output || echo "No outputs found!"
+        working-directory: terraform
 
       - name: Fetch Instance IP
         id: get-ip
@@ -41,6 +55,9 @@ jobs:
             echo "✅ Instance IP: $INSTANCE_IP"
             echo "INSTANCE_IP=$INSTANCE_IP" >> $GITHUB_ENV
           fi
+        working-directory: terraform
+
+
 
       - name: Debug Environment Variables
         run: |
