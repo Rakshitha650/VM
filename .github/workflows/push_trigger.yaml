@@ -14,20 +14,20 @@ jobs:
 
       - name: Verify Terraform Files
         run: |
-          ls -l
-          if [ ! -f "main.tf" ]; then
-            echo "❌ Terraform files not found! Ensure they exist in the repository."
+          ls -l terraform
+          if [ ! -f "terraform/main.tf" ]; then
+            echo "❌ Terraform files not found! Ensure they exist in the 'terraform/' directory."
             exit 1
           fi
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.5.7  # Set your required Terraform version
+          terraform_version: 1.5.7  # Ensure this matches your Terraform version
 
       - name: Initialize Terraform
         run: terraform init
-        working-directory: terraform  # Ensure Terraform runs in the correct directory
+        working-directory: terraform
 
       - name: Validate Terraform Configuration
         run: terraform validate
@@ -57,8 +57,6 @@ jobs:
           fi
         working-directory: terraform
 
-
-
       - name: Debug Environment Variables
         run: |
           echo "GitHub ENV INSTANCE_IP: $INSTANCE_IP"
@@ -66,7 +64,6 @@ jobs:
       - name: SSH into EC2 Instance
         run: |
           ssh -o StrictHostKeyChecking=no -i mosip-qa.pem ubuntu@$INSTANCE_IP 'echo "Connected successfully!"'
-
 
       - name: Wait for EC2 Instance to be Ready
         run: |
