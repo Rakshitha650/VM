@@ -1,67 +1,102 @@
-name: Deploy and Verify Instance
+name: Deploy AWS EC2 with Terraform and Install Software
 
 on:
   push:
     branches:
-      - main  # Change this if your default branch is different
+      - main
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: read
 
 jobs:
   deploy:
+    name: Deploy EC2 Instance
     runs-on: ubuntu-latest
 
-    env:
-      AWS_REGION: us-east-1
-
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.5.6  # Change to match your required version
+          terraform_version: latest
 
-      - name: Terraform Init & Apply
-        run: |
-          terraform init
-          terraform apply -auto-approve
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
 
-      - name: Extract Instance IP
+      - name: Initialize Terraform
+        run: terraform init
+        working-directory: terraform
+
+      - name: Apply Terraform Configuration
+        run: terraform apply -auto-approve
+        working-directory: terraform
+
+      - name: Debug - Check Terraform Directory and Files
         run: |
+          echo "Current Directory: $(pwd)"
+          echo "Listing Files in Repository:"
+          ls -la
+          echo "Checking Terraform Directory:"
+          ls -la terraform || echo "Terraform directory does not exist!"
+      - name: Fetch Terraform Instance IP
+        run: |
+          cd terraform || exit 1
           INSTANCE_IP=$(terraform output -raw instance_public_ip | grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}')
-          CLEANED_IP=$(echo "$INSTANCE_IP" | tr -d '[:space:]' | tr -d '\r')
-
-          if [[ -z "$CLEANED_IP" ]]; then
-            echo "❌ Error: Could not extract a valid IP address"
+          if [[ -z "$INSTANCE_IP" ]]; then
+            echo "❌ Failed to retrieve instance IP"
             exit 1
           fi
+          echo "✅ Fetched Instance IP: $INSTANCE_IP"
+          echo "INSTANCE_IP=$INSTANCE_IP" >> "$GITHUB_ENV"
+        shell: bash
 
-          echo "INSTANCE_IP=$CLEANED_IP" >> $GITHUB_ENV
-          echo "✅ Instance IP extracted: $CLEANED_IP"
 
-      - name: Wait for Instance to be Reachable
+      - name: Debug - Print Retrieved Public IP
         run: |
-          echo "⏳ Waiting for instance to be reachable..."
+          echo "Instance IP is: ${{ env.INSTANCE_IP }}"
+      - name: Setup SSH Key
+        run: |
+          echo "${{ secrets.AWS_PRIVATE_KEY }}" > mosip-qa.pem
+          chmod 400 mosip-qa.pem
+      - name: Wait for EC2 Instance to be Ready
+        run: |
+          echo "Waiting for instance to be reachable..."
           for i in {1..10}; do
-            if ssh -o StrictHostKeyChecking=no -i mosip-qa.pem ubuntu@$INSTANCE_IP "echo Instance is ready"; then
+            if ssh -o StrictHostKeyChecking=no -i mosip-qa.pem ubuntu@${{ env.INSTANCE_IP }} "echo Instance is ready"; then
               echo "✅ Instance is reachable."
               break
             fi
             echo "🔄 Retrying in 15 seconds..."
             sleep 15
           done
-
-      - name: Deploy WireGuard on Instance
+      - name: Setup UFW Firewall
         run: |
-          ssh -o StrictHostKeyChecking=no -i mosip-qa.pem ubuntu@$INSTANCE_IP << 'EOF'
-            sudo apt-get update
-            sudo apt-get install -y wireguard
-            sudo ufw allow 51820/udp
-            sudo systemctl enable wg-quick@wg0
-            sudo systemctl start wg-quick@wg0
-            echo "✅ WireGuard setup completed!"
-          EOF
+          sudo ufw enable
+          sudo ufw allow ssh
+          sudo ufw allow 443/tcp
+          sudo ufw allow 51820/udp
+          sudo ufw status
+      - name: Install WireGuard
+        run: sudo apt-get install -y wireguard
 
+      - name: Configure WireGuard
+        run: |
+          echo "${{ secrets.WG_CONFIG }}" | sudo tee /etc/wireguard/wg0.conf
+      - name: Start WireGuard
+        run: |
+          sudo chmod 600 /etc/wireguard/wg0.conf
+          sudo chmod 700 /etc/wireguard/
+          sudo chmod 644 /lib/systemd/system/wg-quick@.service
+          sudo systemctl daemon-reload
+          sudo wg-quick up wg0
+          sudo wg show wg0
       - name: Install Software on AWS VM
         run: |
           ssh -o StrictHostKeyChecking=no -i mosip-qa.pem ubuntu@${{ env.INSTANCE_IP }} << 'EOF'
