@@ -61,7 +61,7 @@ jobs:
           # Ensure correct format when writing to GITHUB_ENV
           echo "INSTANCE_IP=${INSTANCE_IP}" >> $GITHUB_ENV
         shell: bash
-      
+
 
 
       - name: Debug - Print Retrieved Public IP
