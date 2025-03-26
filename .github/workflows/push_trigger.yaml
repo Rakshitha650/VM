@@ -62,7 +62,6 @@ jobs:
             echo "✅ WireGuard setup completed!"
           EOF
 
-
       - name: Install Software on AWS VM
         run: |
           ssh -o StrictHostKeyChecking=no -i mosip-qa.pem ubuntu@${{ env.INSTANCE_IP }} << 'EOF'
