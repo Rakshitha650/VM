@@ -58,9 +58,16 @@ jobs:
 
           echo "✅ Fetched Instance IP: $INSTANCE_IP"
 
-          # Properly write it to GITHUB_ENV
-          echo "INSTANCE_IP=$INSTANCE_IP" | tr -d '\r' >> $GITHUB_ENV
+          # Debugging: Show special characters if any
+          echo "Debug - Instance IP:" | cat -A
+          echo "$INSTANCE_IP" | cat -A
+
+          # Ensure correct formatting before writing to GITHUB_ENV
+          CLEANED_IP=$(echo "$INSTANCE_IP" | tr -d '[:space:]' | tr -d '\r')
+
+          echo "INSTANCE_IP=$CLEANED_IP" >> $GITHUB_ENV
         shell: bash
+
 
       - name: Debug - Print Retrieved Public IP
         run: |
