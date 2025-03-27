@@ -14,6 +14,13 @@ set -o nounset   # Exit on uninitialized variable usage
 set -o errtrace  # Trace ERR signals in functions and subshells
 set -o pipefail  # Catch errors in pipeline chains
 
+# Get the actual logged-in user (not root)
+USER_NAME=$(logname)
+USER_HOME=$(eval echo ~$USER_NAME)
+
+echo "[ Detected User ]: $USER_NAME"
+echo "[ User Home Directory ]: $USER_HOME"
+
 # Update and upgrade system packages
 echo "[ Updating System Packages ]"
 sudo apt update -y && sudo apt upgrade -y
@@ -36,27 +43,27 @@ sudo sysctl -p
 echo "[ Installing TightVNC Server and XFCE4 ]"
 sudo apt install -y tightvncserver xfce4 xfce4-goodies
 
-# Start VNC Server to set an initial password
+# Start VNC Server as the logged-in user to set an initial password
 echo "[ Setting VNC Password ]"
-vncserver
-vncserver -kill :1  # Kill the first session to configure it
+sudo -u $USER_NAME vncserver
+sudo -u $USER_NAME vncserver -kill :1  # Kill the first session to configure it
 
 # Configure VNC Startup Script
 echo "[ Configuring VNC Startup Script ]"
-cat <<EOF > ~/.vnc/xstartup
+sudo -u $USER_NAME bash -c "cat <<EOF > $USER_HOME/.vnc/xstartup
 #!/bin/bash
-xrdb $HOME/.Xresources
+xrdb \$HOME/.Xresources
 startxfce4 &
-EOF
+EOF"
 
-chmod +x ~/.vnc/xstartup
+sudo -u $USER_NAME chmod +x $USER_HOME/.vnc/xstartup
 
 # Restart VNC Server
 echo "[ Restarting VNC Server ]"
-vncserver :1
+sudo -u $USER_NAME vncserver :1
 
 # Configure Firewall
-echo "[ Configuring Firewall for VNC ]"
+echo "[ Configuring Firewall for VNC and SSH ]"
 sudo ufw allow 5901/tcp  # Allow VNC traffic
 sudo ufw allow 22/tcp    # Allow SSH traffic
 sudo ufw allow 80/tcp    # Allow HTTP (Optional)
@@ -68,7 +75,7 @@ sudo ufw enable
 
 # Restart VNC Server
 echo "[ Restarting VNC Server ]"
-vncserver :1
+sudo -u $USER_NAME vncserver :1
 
 # Install JProfiler 13
 JPROFILER_VERSION="13_0_1"
