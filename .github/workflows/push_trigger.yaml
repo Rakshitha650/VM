@@ -4,7 +4,15 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch: # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      vnc_username:
+        description: "Enter VNC Username"
+        required: true
+      vnc_password:
+        description: "Enter VNC Password"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -38,6 +46,11 @@ jobs:
         run: terraform apply -auto-approve
         working-directory: terraform
 
+      - name: Fetch VNC User Inputs
+        run: |
+          echo "VNC Username: ${{ github.event.inputs.vnc_username }}"
+          echo "VNC Password: (hidden for security)"
+
       - name: Debug - Check Terraform Directory and Files
         run: |
           echo "Current Directory: $(pwd)"
@@ -45,3 +58,8 @@ jobs:
           ls -la
           echo "Checking Terraform Directory:"
           ls -la terraform || echo "Terraform directory does not exist!"
+
+      - name: Run Install Script on EC2 Instance
+        run: |
+          chmod +x install.sh
+          ./install.sh "${{ github.event.inputs.vnc_username }}" "${{ github.event.inputs.vnc_password }}"
