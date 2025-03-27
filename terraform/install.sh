@@ -32,9 +32,43 @@ echo "[ Enabling IP Forwarding for WireGuard ]"
 echo "net.ipv4.ip_forward=1" | sudo tee -a /etc/sysctl.conf
 sudo sysctl -p
 
-# Install VNC Server
-echo "[ Installing TightVNC Server ]"
-sudo apt install -y tightvncserver
+# Install VNC Server and XFCE4
+echo "[ Installing TightVNC Server and XFCE4 ]"
+sudo apt install -y tightvncserver xfce4 xfce4-goodies
+
+# Start VNC Server to set an initial password
+echo "[ Setting VNC Password ]"
+vncserver
+vncserver -kill :1  # Kill the first session to configure it
+
+# Configure VNC Startup Script
+echo "[ Configuring VNC Startup Script ]"
+cat <<EOF > ~/.vnc/xstartup
+#!/bin/bash
+xrdb $HOME/.Xresources
+startxfce4 &
+EOF
+
+chmod +x ~/.vnc/xstartup
+
+# Restart VNC Server
+echo "[ Restarting VNC Server ]"
+vncserver :1
+
+# Configure Firewall
+echo "[ Configuring Firewall for VNC ]"
+sudo ufw allow 5901/tcp  # Allow VNC traffic
+sudo ufw allow 22/tcp    # Allow SSH traffic
+sudo ufw allow 80/tcp    # Allow HTTP (Optional)
+sudo ufw allow 443/tcp   # Allow HTTPS (Optional)
+
+# Enable and start the firewall
+echo "[ Enabling Firewall ]"
+sudo ufw enable
+
+# Restart VNC Server
+echo "[ Restarting VNC Server ]"
+vncserver :1
 
 # Install JProfiler 13
 JPROFILER_VERSION="13_0_1"
