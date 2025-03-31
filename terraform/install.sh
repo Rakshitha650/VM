@@ -112,4 +112,14 @@ sudo ln -sf /opt/jprofiler13/bin/jprofiler /usr/local/bin/jprofiler
 echo "[ Cleaning up temporary files ]"
 rm -f /tmp/jprofiler.tar.gz
 
-echo "[ Installation Complete! ]"
+echo "[ Verifying Installation ]"
+REQUIRED_PKGS=("openjdk-11-jdk" "wireguard" "tightvncserver" "xfce4" "ufw")
+
+for pkg in "${REQUIRED_PKGS[@]}"; do
+    if ! dpkg -l | grep -q "$pkg"; then
+        echo "Package $pkg is not installed. Retrying..."
+        sudo apt install -y "$pkg"
+    fi
+done
+
+echo "[ Installation and Configuration Completed Successfully ]"
