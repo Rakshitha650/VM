@@ -56,11 +56,10 @@ jobs:
           echo "Checking Terraform Directory:"
           ls -la terraform || echo "Terraform directory does not exist!"
 
-      - name: Run Install Script on EC2 Instance
+      - name: Run Install Script
         run: |
-          chmod +x install.sh
           cd terraform
-          pwd
+          chmod +x install.sh
           ./install.sh "${{ github.event.inputs.vnc_username }}" "${{ github.event.inputs.vnc_password }}"
 
           echo "Waiting for installation to complete..."
