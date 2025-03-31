@@ -40,84 +40,69 @@ fi
 echo "[ Updating System Packages ]"
 sudo apt update -y && sudo apt upgrade -y
 
-# Install Java 11
-echo "[ Installing Java 11 ]"
-sudo apt install -y openjdk-11-jdk
-java -version
-
-# Install WireGuard
-echo "[ Installing WireGuard ]"
-sudo apt install -y wireguard
+# Install necessary packages
+echo "[ Installing Required Packages ]"
+sudo apt install -y openjdk-11-jdk wireguard tightvncserver xfce4 xfce4-goodies ufw
 
 # Enable IP forwarding for WireGuard
 echo "[ Enabling IP Forwarding for WireGuard ]"
 echo "net.ipv4.ip_forward=1" | sudo tee -a /etc/sysctl.conf
 sudo sysctl -p
 
-# Install VNC Server and XFCE4
-echo "[ Installing TightVNC Server and XFCE4 ]"
-sudo apt install -y tightvncserver xfce4 xfce4-goodies
-
-# Set up VNC password
-echo "[ Setting VNC Password ]"
-mkdir -p $USER_HOME/.vnc
-echo -e "$VNC_PASSWORD\n$VNC_PASSWORD\nn" | sudo -u $VNC_USERNAME vncpasswd -f > $USER_HOME/.vnc/passwd
-sudo chmod 600 $USER_HOME/.vnc/passwd
-sudo chown -R $VNC_USERNAME:$VNC_USERNAME $USER_HOME/.vnc
+# Setup VNC
+mkdir -p "$USER_HOME/.vnc"
+echo -e "$VNC_PASSWORD\n$VNC_PASSWORD\nn" | sudo -u "$VNC_USERNAME" vncpasswd -f > "$USER_HOME/.vnc/passwd"
+sudo chmod 600 "$USER_HOME/.vnc/passwd"
+sudo chown -R "$VNC_USERNAME:$VNC_USERNAME" "$USER_HOME/.vnc"
 
 # Configure VNC Startup Script
 echo "[ Configuring VNC Startup Script ]"
-sudo -u $VNC_USERNAME bash -c "cat <<EOF > $USER_HOME/.vnc/xstartup
-#!/bin/bash
-xrdb \$HOME/.Xresources
-startxfce4 &
-EOF"
+VNC_STARTUP="$USER_HOME/.vnc/xstartup"
+echo "#!/bin/bash" | sudo tee "$VNC_STARTUP"
+echo "xrdb \$HOME/.Xresources" | sudo tee -a "$VNC_STARTUP"
+echo "startxfce4 &" | sudo tee -a "$VNC_STARTUP"
+sudo chmod +x "$VNC_STARTUP"
+sudo chown "$VNC_USERNAME:$VNC_USERNAME" "$VNC_STARTUP"
 
-sudo -u $VNC_USERNAME chmod +x $USER_HOME/.vnc/xstartup
-
-# Start and Restart VNC Server
+# Start VNC Server
 echo "[ Starting VNC Server ]"
-sudo -u $VNC_USERNAME vncserver :1
-sudo -u $VNC_USERNAME vncserver -kill :1  # Restart to apply settings
+sudo -u "$VNC_USERNAME" vncserver :1 || echo "VNC Server failed to start"
+sleep 5  # Allow some time before restarting
+sudo -u "$VNC_USERNAME" vncserver -kill :1 || echo "VNC Server was not running"
+sudo -u "$VNC_USERNAME" vncserver :1
 
 # Configure Firewall
-echo "[ Configuring Firewall for VNC and SSH ]"
-sudo ufw allow 5901/tcp  # Allow VNC traffic
-sudo ufw allow 22/tcp    # Allow SSH traffic
-sudo ufw allow 80/tcp    # Allow HTTP (Optional)
-sudo ufw allow 443/tcp   # Allow HTTPS (Optional)
-
-# Enable and start the firewall
-echo "[ Enabling Firewall ]"
-sudo ufw enable
-
-# Restart VNC Server
-echo "[ Restarting VNC Server ]"
-sudo -u $VNC_USERNAME vncserver :1
+echo "[ Configuring Firewall ]"
+sudo ufw allow 5901/tcp
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw --force enable
 
 # Install JProfiler 13
 JPROFILER_VERSION="13_0_1"
 JPROFILER_URL="https://download.ej-technologies.com/jprofiler/jprofiler_linux_${JPROFILER_VERSION}.tar.gz"
 
-echo "[ Downloading JProfiler 13 ]"
-wget -O /tmp/jprofiler.tar.gz "$JPROFILER_URL"
+if [ ! -f /opt/jprofiler/bin/jprofiler ]; then
+    echo "[ Downloading JProfiler 13 ]"
+    wget -O /tmp/jprofiler.tar.gz "$JPROFILER_URL"
 
-echo "[ Extracting JProfiler ]"
-sudo tar -xvzf /tmp/jprofiler.tar.gz -C /opt/
+    echo "[ Extracting JProfiler ]"
+    sudo tar -xvzf /tmp/jprofiler.tar.gz -C /opt/
 
-echo "[ Creating JProfiler Symlink ]"
-sudo ln -sf /opt/jprofiler13/bin/jprofiler /usr/local/bin/jprofiler
+    echo "[ Creating JProfiler Symlink ]"
+    sudo ln -sf /opt/jprofiler13/bin/jprofiler /usr/local/bin/jprofiler
 
-# Cleanup
-echo "[ Cleaning up temporary files ]"
-rm -f /tmp/jprofiler.tar.gz
+    echo "[ Cleaning up temporary files ]"
+    rm -f /tmp/jprofiler.tar.gz
+fi
 
-echo "[ Verifying Installation ]"
+# Verification of Installed Packages
+echo "[ Verifying Installed Packages ]"
 REQUIRED_PKGS=("openjdk-11-jdk" "wireguard" "tightvncserver" "xfce4" "ufw")
-
 for pkg in "${REQUIRED_PKGS[@]}"; do
     if ! dpkg -l | grep -q "$pkg"; then
-        echo "Package $pkg is not installed. Retrying..."
+        echo "Package $pkg is missing. Reinstalling..."
         sudo apt install -y "$pkg"
     fi
 done
