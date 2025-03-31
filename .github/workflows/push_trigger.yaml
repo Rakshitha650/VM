@@ -60,6 +60,7 @@ jobs:
         run: |
           chmod +x install.sh
           cd terraform
+          pwd
           ./install.sh "${{ github.event.inputs.vnc_username }}" "${{ github.event.inputs.vnc_password }}"
 
           echo "Waiting for installation to complete..."
