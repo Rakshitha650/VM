@@ -1,9 +1,6 @@
 name: Deploy AWS EC2 with Terraform and Install Software
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       vnc_username:
@@ -62,6 +59,7 @@ jobs:
       - name: Run Install Script on EC2 Instance
         run: |
           chmod +x install.sh
+          cd terraform
           ./install.sh "${{ github.event.inputs.vnc_username }}" "${{ github.event.inputs.vnc_password }}"
 
           echo "Waiting for installation to complete..."
